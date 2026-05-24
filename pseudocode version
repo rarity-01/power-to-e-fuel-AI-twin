@@ -1,1 +1,196 @@
-output
+
+// ==========================================
+// GLOBAL VARIABLE DECLARATIONS
+// ==========================================
+DECLARE TotalRunTime : REAL
+DECLARE Time : REAL
+DECLARE PowerBaseline : REAL
+DECLARE PowerSolar : REAL
+DECLARE PowerNeeded : REAL
+DECLARE VCell : REAL                // Set to REAL for precise fractional voltage calculations
+DECLARE InsulationCoefficiant : REAL
+DECLARE SurfaceArea : REAL
+DECLARE TempReactor : REAL
+DECLARE TempAmbience : REAL
+DECLARE PowerCell : REAL
+DECLARE Current : REAL
+DECLARE HydrogenMoles : REAL
+DECLARE MassFlowRate : REAL
+DECLARE PowerLoss : REAL
+DECLARE PowerMINDynamic : REAL      
+DECLARE DecayCoefficiant : REAL
+DECLARE InitialCataEff : REAL       
+DECLARE CurrentCataEff : REAL       
+DECLARE UsableYield : REAL          
+DECLARE LowerHeatingValue : REAL
+DECLARE MassEFUEL : REAL
+DECLARE VolumeEFUEL : REAL          
+DECLARE DensityEFUEL : REAL
+DECLARE MarketValue : REAL
+DECLARE GridPrice : REAL
+DECLARE SystemStatus : BOOLEAN
+DECLARE MarketV : REAL
+DECLARE GridP : REAL
+DECLARE TimeRE : REAL
+DECLARE PROFITmargin : REAL         
+
+// Initializing master timeline tracking state
+TotalRunTime <- 0.0
+
+// ==========================================
+// DATA INPUT & VALIDATION PROCESSING
+// ==========================================
+
+REPEAT
+    INPUT PowerBaseline
+    IF PowerBaseline < 0.0 THEN
+        OUTPUT "Error"
+    ENDIF
+UNTIL PowerBaseline > 0.0
+
+INPUT PowerSolar
+
+REPEAT
+    INPUT VCell 
+    IF VCell < 0.0 THEN
+        OUTPUT "Error"
+    ENDIF
+UNTIL VCell > 0.0
+
+REPEAT
+    INPUT InsulationCoefficiant
+    IF InsulationCoefficiant < 0.0 THEN
+        OUTPUT "Error"
+    ENDIF
+UNTIL InsulationCoefficiant >= 0.0
+
+REPEAT
+    INPUT SurfaceArea
+    IF SurfaceArea < 0.0 THEN
+        OUTPUT "Error"
+    ENDIF
+UNTIL SurfaceArea > 0.0
+
+INPUT TempReactor
+INPUT TempAmbience
+
+REPEAT
+    INPUT DecayCoefficiant
+    IF DecayCoefficiant < 0.0 THEN
+        OUTPUT "Error"
+    ENDIF
+UNTIL DecayCoefficiant > 0.0
+
+REPEAT
+    INPUT InitialCataEff
+    IF InitialCataEff < 0.0 THEN
+        OUTPUT "Error"
+    ENDIF
+UNTIL InitialCataEff >= 0.0
+
+REPEAT
+    INPUT LowerHeatingValue
+    IF LowerHeatingValue < 0.0 THEN
+        OUTPUT "Error"
+    ENDIF
+UNTIL LowerHeatingValue > 0.0
+
+REPEAT
+    INPUT DensityEFUEL
+    IF DensityEFUEL < 0.0 THEN
+        OUTPUT "Error"
+    ENDIF
+UNTIL DensityEFUEL > 0.0
+
+REPEAT
+    OUTPUT "Enter market value of E-Fuel:"
+    INPUT MarketValue
+    OUTPUT "Re-enter"
+    INPUT MarketV
+UNTIL MarketValue = MarketV
+
+REPEAT
+    OUTPUT "Enter Grid Price:"
+    INPUT GridPrice
+    OUTPUT "Re-enter"
+    INPUT GridP
+UNTIL GridPrice = GridP 
+
+
+// ==========================================
+// SYSTEM MODULES (DIRECT ASSIGNMENT PROCEDURES)
+// ==========================================
+
+// Calculates and assigns electrical balances directly to global variables
+PROCEDURE CalculateEnergy()
+    IF PowerSolar < PowerBaseline THEN
+        PowerNeeded <- PowerBaseline - PowerSolar
+        PowerCell <- PowerBaseline
+    ELSE
+        PowerCell <- PowerSolar
+        PowerNeeded <- 0.0
+    ENDIF
+ENDPROCEDURE
+
+// Computes current flow and assigns it directly to global variable 'Current'
+PROCEDURE CalculateCurrentINCell()
+    Current <- (PowerCell * 1000.0) / VCell
+ENDPROCEDURE
+
+// Evaluates Faraday law kinetics and assigns to global variable 'HydrogenMoles'
+PROCEDURE CalculateH2FlowRateMOL()
+    HydrogenMoles <- Current / (2.0 * 96845.0)
+ENDPROCEDURE
+
+// Converts active chemical moles and assigns directly to global variable 'MassFlowRate'
+PROCEDURE CalculateH2FlowRateKG()
+    MassFlowRate <- HydrogenMoles * 0.002016
+ENDPROCEDURE
+
+// Calculates environmental heat leakage and assigns to global variable 'PowerLoss'
+PROCEDURE CalculateDissipationPower()
+    PowerLoss <- InsulationCoefficiant * SurfaceArea * (TempReactor - TempAmbience)
+ENDPROCEDURE
+
+// Computes dynamic thermal baseline and assigns to global variable 'PowerMINDynamic'
+PROCEDURE CalculateTempFactorPower()
+    PowerMINDynamic <- PowerCell + PowerLoss
+ENDPROCEDURE
+
+// Tracks operational decay over time and assigns to global variable 'CurrentCataEff'
+PROCEDURE CalculateCataEffNOW()
+    CurrentCataEff <- InitialCataEff - (TotalRunTime * DecayCoefficiant)
+ENDPROCEDURE
+
+// Transforms power capacity parameters directly into product mass and volume variables
+PROCEDURE CalculateActualYield()
+    UsableYield <- PowerCell * CurrentCataEff * Time * 60.0 * 60.0
+    MassEFUEL <- UsableYield / LowerHeatingValue
+    VolumeEFUEL <- (MassEFUEL / DensityEFUEL) * 1000.0
+ENDPROCEDURE
+
+// Computes profit criteria metrics and logs active operational lifetime records
+PROCEDURE EvaluateMarginOfProfit()
+    PROFITmargin <- (VolumeEFUEL * MarketValue) - ((PowerNeeded + PowerLoss) * Time * GridPrice)
+
+    IF PROFITmargin > 0.0 THEN
+        SystemStatus <- TRUE
+    ELSE
+        SystemStatus <- FALSE
+    ENDIF
+
+    IF SystemStatus = TRUE THEN
+        TotalRunTime <- TotalRunTime + Time
+    ENDIF
+ENDPROCEDURE
+
+
+// ==========================================
+// MAIN EXECUTIVE CONTROL LAYER
+// ==========================================
+
+
+
+
+
+
